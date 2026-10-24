@@ -1,0 +1,3 @@
+.venv/
+books.db
+__pycache__/

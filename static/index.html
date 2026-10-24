@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公版书元数据搜索</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e5e7eb; --text:#1f2328; --muted:#6b7280; --accent:#0e7490; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: "PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 20px; }
+  h1 { font-size: 24px; font-weight: 700; }
+  .sub { color: var(--muted); margin: 6px 0 24px; font-size: 13px; }
+  #q { width: 100%; padding: 12px 16px; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; outline: none; background: #fff; }
+  #q:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(14,116,144,.12); }
+  .count { color: var(--muted); font-size: 13px; margin: 18px 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; text-decoration: none; color: inherit; transition: box-shadow .15s, border-color .15s; }
+  .card:hover { border-color: var(--accent); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .title { font-size: 15px; font-weight: 600; }
+  .badge { flex: none; font-size: 11px; color: var(--accent); border: 1px solid rgba(14,116,144,.35); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+  .author { color: var(--muted); font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>公版书元数据搜索</h1>
+  <p class="sub">仅索引公版书元数据（书名、作者、来源），不提供正文。点击卡片跳转至来源站点。</p>
+  <input id="q" type="search" placeholder="输入书名或作者，例如：红楼梦 / Pride" autofocus>
+  <div id="results"></div>
+</div>
+<script>
+const input = document.getElementById('q');
+const results = document.getElementById('results');
+let timer = null;
+input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(search, 250); });
+async function search() {
+  const q = input.value.trim();
+  if (!q) { results.innerHTML = ''; return; }
+  let data;
+  try {
+    const resp = await fetch('/api/search?q=' + encodeURIComponent(q));
+    data = await resp.json();
+  } catch (err) { return; }
+  render(q, data.results || []);
+}
+function render(q, items) {
+  results.innerHTML = '';
+  const note = document.createElement('p');
+  note.className = 'count';
+  if (!items.length) {
+    note.textContent = '未找到与 "' + q + '" 相关的书籍';
+    results.appendChild(note);
+    return;
+  }
+  note.textContent = '共 ' + items.length + ' 条结果';
+  results.appendChild(note);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  for (const b of items) {
+    const card = document.createElement('a');
+    card.className = 'card';
+    card.href = b.source_url;
+    card.target = '_blank';
+    card.rel = 'noopener noreferrer';
+    const head = document.createElement('div');
+    head.className = 'head';
+    const title = document.createElement('div');
+    title.className = 'title';
+    title.textContent = b.title;
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = b.source_name;
+    head.appendChild(title);
+    head.appendChild(badge);
+    const author = document.createElement('div');
+    author.className = 'author';
+    author.textContent = b.author || '作者不详';
+    card.appendChild(head);
+    card.appendChild(author);
+    grid.appendChild(card);
+  }
+  results.appendChild(grid);
+}
+</script>
+</body>
+</html>
